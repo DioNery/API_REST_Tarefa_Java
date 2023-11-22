@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tarefas")
@@ -29,21 +28,36 @@ public class TarefaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Tarefa> buscarPorId(@PathVariable int id) {
-        Optional<Tarefa> tarefa = tarefaService.buscarPorId(id);
-        return tarefa.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+        return tarefaService.buscarPorId(id)
+                .map(tarefa -> new ResponseEntity<>(tarefa, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping
-    public ResponseEntity<Tarefa> salvarTarefa(@RequestBody Tarefa tarefa) {
+    public ResponseEntity<Tarefa> criarTarefa(@RequestBody Tarefa tarefa) {
         Tarefa novaTarefa = tarefaService.salvarTarefa(tarefa);
         return new ResponseEntity<>(novaTarefa, HttpStatus.CREATED);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Tarefa> atualizarTarefa(@PathVariable int id, @RequestBody Tarefa tarefaAtualizada) {
+        return tarefaService.buscarPorId(id)
+                .map(tarefa -> {
+                    tarefa.setDescricao(tarefaAtualizada.getDescricao());
+                    tarefa.setFeita(tarefaAtualizada.isFeita());
+                    Tarefa tarefaAtualizadaDb = tarefaService.salvarTarefa(tarefa);
+                    return new ResponseEntity<>(tarefaAtualizadaDb, HttpStatus.OK);
+                })
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarTarefa(@PathVariable int id) {
-        tarefaService.deletarTarefa(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (tarefaService.buscarPorId(id).isPresent()) {
+            tarefaService.deletarTarefa(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }
-
